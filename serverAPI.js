@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const NodeCache = require('node-cache');
+const Joi = require('joi');
 require('dotenv').config();
 
 const app = express();
@@ -47,7 +48,7 @@ const voitures = [
 
 const users = [
     { id: 1, username: 'user1', password: 'password1' },
-    { id: 2, username: 'user2', password: 'password2' },
+    { id: 2, username: 'user2', email: 'user2@gmail.com', password: 'password2' }
 ];
 
 const requireAuthJWT = (req, res, next) => {
@@ -74,6 +75,34 @@ const requireAuthSession = (req, res, next) => {
         res.status(401).json({ error: 'Unauthorized' });
     }
 };
+
+const userSchema = Joi.object({
+    username: Joi.string().alphanum().min(3).max(30).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
+});
+
+const validateUserData = (req, res, next) => {
+    const { error } = userSchema.validate(req.body);
+    if (error) {
+        return res.status(400).json({ message: "La création de l'utilisateur ne respecte les conditions requises" });
+    } else {
+        next();
+    }
+};
+
+app.post('/sign-in', validateUserData, (req, res) => {
+    const { username, email, password } = req.body;
+    const existingUser = users.find(u => u.username === username || u.email === email);
+    if (existingUser) {
+        return res.status(409).json({ error: "L'utilisateur existe déjà" });
+    } else {
+        const newUser = { id: users.length + 1, username, email, password };
+        users.push(newUser);
+        res.status(201).json({ message: "Utilisateur créé avec succès", user: newUser });
+    }
+});
+
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
