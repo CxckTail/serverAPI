@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
+const NodeCache = require('node-cache');
 require('dotenv').config();
 
 const app = express();
@@ -15,12 +16,33 @@ app.use(session({
     saveUninitialized: true
 }));
 
+const voitureCache = new NodeCache;
+
 const voitures = [
-    { marque: "Toyota", modele: "Corolla", annee: 2020 },
-    { marque: "Honda", modele: "Civic", annee: 2019 },
-    { marque: "Ford", modele: "Mustang", annee: 2021 },
-    { marque: "BMW", modele: "X5", annee: 2018 },
-    { marque: "Mercedes-Benz", modele: "C-Class", annee: 2022 }
+    {
+        marque: "Toyota",
+        modele: "Corolla",
+        plaqueImmatriculation: "AB-123-CD",
+        anneeFabrication: 2019
+    },
+    {
+        marque: "Ford",
+        modele: "Focus",
+        plaqueImmatriculation: "EF-456-GH",
+        anneeFabrication: 2018
+    },
+    {
+        marque: "Honda",
+        modele: "Civic",
+        plaqueImmatriculation: "IJ-789-KL",
+        anneeFabrication: 2020
+    },
+    {
+        marque: "Volkswagen",
+        modele: "Golf",
+        plaqueImmatriculation: "MN-012-OP",
+        anneeFabrication: 2017
+    }
 ];
 
 const users = [
@@ -88,6 +110,26 @@ app.get('/Modeles', requireAuthSession, (req, res) => {
 app.get("/", requireAuthSession, (req, res) => {
     res.json({ message: "Information du compte", user: req.session.user });
 })
+
+app.get('/voitures/:immatriculation', requireAuthJWT, (req, res) => {
+    const immatriculation = req.params.immatriculation;
+    let voiture = voitureCache.get(immatriculation);
+    let message = "";
+    if (!voiture) {
+        message = "Data venant du serveur";
+        voiture = voitures.find(voiture => voiture.plaqueImmatriculation === immatriculation);
+        if (voiture) {
+            voitureCache.set(immatriculation, voiture);
+        }
+    } else {
+        message = "Data venant du cache";
+    }
+    if (voiture) {
+        res.json({ message, voiture });
+    } else {
+        res.status(404).json({ error: 'Véhicule non trouvé' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Serveur lancé sur le port : ${PORT}`);
