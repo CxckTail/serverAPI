@@ -85,7 +85,7 @@ const userSchema = Joi.object({
 const validateUserData = (req, res, next) => {
     const { error } = userSchema.validate(req.body);
     if (error) {
-        return res.status(400).json({ message: "La création de l'utilisateur ne respecte les conditions requises" });
+        return res.status(400).json({ message: "La création de l'utilisateur ne respecte pas les conditions requises" });
     } else {
         next();
     }
