@@ -16,7 +16,7 @@ app.use(session({
     saveUninitialized: true
 }));
 
-const voitureCache = new NodeCache;
+const voitureCache = new NodeCache({ stdTTL: 3600 });
 
 const voitures = [
     {
